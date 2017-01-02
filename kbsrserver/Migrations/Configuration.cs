@@ -53,10 +53,10 @@ namespace kbsrserver.Migrations
 
             context.Notes.AddOrUpdate(
                     p => p.Name,
-                    new Note { Id = 1, Name = "Hello", Text = "Hello, World!" },
-                    new Note { Id = 2, Name = "Eldar", Text = @"Eldar Gamisoniya
+                    new Note { Id = 1, Name = "Hello", Text = BouncyCastleHelper.DbProtection("Hello, World!") },
+                    new Note { Id = 2, Name = "Eldar", Text = BouncyCastleHelper.DbProtection(@"Eldar Gamisoniya
 BSU
-GROUP 12" }
+GROUP 12") }
                 );
 
             context.SaveChanges();

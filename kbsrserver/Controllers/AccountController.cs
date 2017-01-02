@@ -72,15 +72,15 @@ namespace kbsrserver.Controllers
                     context.Keys.Add(new UserKey
                     {
                         Imei = imei,
-                        PublicSignKey = model.PublicSignKey,
-                        SignHalfKey = model.HalfPrivateSignKey,
+                        PublicSignKey = BouncyCastleHelper.DbProtection(model.PublicSignKey),
+                        SignHalfKey = BouncyCastleHelper.DbProtection(model.HalfPrivateSignKey),
                         User = await context.Users.FirstOrDefaultAsync(u => u.UserName == User.Identity.Name)
                     });
                 }
                 else
                 {
-                    key.PublicSignKey = model.PublicSignKey;
-                    key.SignHalfKey = model.HalfPrivateSignKey;
+                    key.PublicSignKey = BouncyCastleHelper.DbProtection(model.PublicSignKey);
+                    key.SignHalfKey = BouncyCastleHelper.DbProtection(model.HalfPrivateSignKey);
                     context.Entry(key).State = EntityState.Modified;
                 }
                 await context.SaveChangesAsync();

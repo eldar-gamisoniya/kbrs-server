@@ -17,6 +17,7 @@ using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Paddings;
 using Org.BouncyCastle.Crypto.Modes;
 using System.Text;
+using System.Configuration;
 
 namespace kbsrserver.Helpers
 {
@@ -42,6 +43,11 @@ namespace kbsrserver.Helpers
 
     public static class BouncyCastleHelper
     {
+        public static string GetMasterKey()
+        {
+            return ConfigurationManager.AppSettings["MasterKey"];
+        }
+
         public static string ToHexString(this byte[] bytes)
         {
             var sb = new StringBuilder(bytes.Length * 2);
@@ -97,6 +103,21 @@ namespace kbsrserver.Helpers
             return l.ToHexString();
         }
 
+        public static string DbProtection(string field, bool isEncryption = true)
+        {
+            var c = new PaddedBufferedBlockCipher(new CfbBlockCipher(new SerpentEngine(), 128), new Pkcs7Padding());
+
+            var text = isEncryption ? Encoding.UTF8.GetBytes(field) : field.FromHexString();
+            var key = GetMasterKey().FromHexString();
+            var iv = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+            c.Init(isEncryption, new ParametersWithIV(new KeyParameter(key), iv));
+
+            var ct = new byte[c.GetOutputSize(text.Length)];
+            ct = c.DoFinal(text);
+            return isEncryption ? ct.ToHexString() : Encoding.UTF8.GetString(ct);
+        }
+
         public static string EncryptNote(string note, string sessionKey)
         {
             var c = new PaddedBufferedBlockCipher(new CfbBlockCipher(new SerpentEngine(), 128), new Pkcs7Padding());
@@ -106,7 +127,7 @@ namespace kbsrserver.Helpers
             var iv = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
 
             c.Init(true, new ParametersWithIV(new KeyParameter(key), iv));
-
+            
             var ct = new byte[c.GetOutputSize(text.Length)];
             int l = c.ProcessBytes(text, 0, text.Length, ct, 0);
             c.DoFinal(ct, l);

@@ -46,7 +46,7 @@ namespace kbsrserver.Attributes
             var jsonPostData = reader.ReadToEnd();
             stream.Seek(0, SeekOrigin.Begin);
 
-            if (!BouncyCastleHelper.Verify(jsonPostData, signature, key.PublicSignKey))
+            if (!BouncyCastleHelper.Verify(jsonPostData, signature, BouncyCastleHelper.DbProtection(key.PublicSignKey, false)))
             {
                 actionContext.Response = actionContext.Request.CreateCustomErrorResponse(HttpStatusCode.BadRequest, "Sign is invalid");
                 return;

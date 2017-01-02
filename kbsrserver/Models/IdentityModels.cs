@@ -18,7 +18,8 @@ namespace kbsrserver.Models
             // Add custom user claims here
             return userIdentity;
         }
-
+        
+        public int Attempts { get; set; }
         public virtual IEnumerable<UserKey> Keys { get; set; }
     }
 

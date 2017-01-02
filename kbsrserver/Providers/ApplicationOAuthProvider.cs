@@ -17,6 +17,7 @@ namespace kbsrserver.Providers
 {
     public class ApplicationOAuthProvider : OAuthAuthorizationServerProvider
     {
+        const int MaxAttempts = 3;
         private readonly string _publicClientId;
 
         public ApplicationOAuthProvider(string publicClientId)
@@ -33,16 +34,27 @@ namespace kbsrserver.Providers
         {
             var userManager = context.OwinContext.GetUserManager<ApplicationUserManager>();
 
-            ApplicationUser user = await userManager.FindAsync(context.UserName, context.Password);
-
-            if (user == null)
+            var user = await userManager.FindByNameAsync(context.UserName);
+            if (user == null || user.Attempts >= MaxAttempts)
             {
                 context.SetError("invalid_grant", "The user name or password is incorrect.");
                 return;
             }
+            context.
+            if (! await userManager.CheckPasswordAsync(user, context.Password))
+            {
+                user.Attempts++;
+                await userManager.UpdateAsync(user);
+                await context.OwinContext.Get<ApplicationDbContext>().SaveChangesAsync();
+                context.SetError("invalid_grant", "The user name or password is incorrect.");
+                return;
+            }
+            user.Attempts = 0;
+            await userManager.UpdateAsync(user);
+            await context.OwinContext.Get<ApplicationDbContext>().SaveChangesAsync();
             string[] values;
             if (!context.Request.Headers.TryGetValue("Imei", out values))
-            {
+            { 
                 context.SetError("no_imei", "Imei not specified");
                 return;
             }
@@ -60,7 +72,7 @@ namespace kbsrserver.Providers
                         key = new UserKey
                         {
                             Imei = imei,
-                            UserStorageKey = BouncyCastleHelper.GenerateSerpentKey(),
+                            UserStorageKey = BouncyCastleHelper.DbProtection(BouncyCastleHelper.GenerateSerpentKey()),
                             User = userEntity
                         };
                         db.Keys.Add(key);
@@ -68,7 +80,7 @@ namespace kbsrserver.Providers
                     }
                     else if (key.UserStorageKey == null)
                     {
-                        key.UserStorageKey = BouncyCastleHelper.GenerateSerpentKey();
+                        key.UserStorageKey = BouncyCastleHelper.DbProtection(BouncyCastleHelper.GenerateSerpentKey());
                         db.Entry(key).State = EntityState.Modified;
                         await db.SaveChangesAsync();
                     }
@@ -130,9 +142,9 @@ namespace kbsrserver.Providers
                 { "userName", user.UserName }
             };
             if (key?.PublicSignKey != null)
-                data.Add("signHalfKey", key.SignHalfKey);
+                data.Add("signHalfKey", BouncyCastleHelper.DbProtection(key.SignHalfKey, false));
             if (key?.UserStorageKey != null)
-                data.Add("userStorageKey", key.UserStorageKey);
+                data.Add("userStorageKey", BouncyCastleHelper.DbProtection(key.UserStorageKey, false));
             return new AuthenticationProperties(data);
         }
     }

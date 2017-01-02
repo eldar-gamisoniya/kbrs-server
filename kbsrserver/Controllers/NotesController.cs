@@ -52,14 +52,14 @@ namespace kbsrserver.Controllers
                     context.Keys.Add(new UserKey
                     {
                         Imei = imei,
-                        PublicKey = model.PublicKey,
+                        PublicKey = BouncyCastleHelper.DbProtection(model.PublicKey),
                         User = user
                     });
                 }
                 else
                 {
-                    key.PublicKey = model.PublicKey;
-                    context.Entry(key).State = System.Data.Entity.EntityState.Modified;
+                    key.PublicKey = BouncyCastleHelper.DbProtection(model.PublicKey);
+                    context.Entry(key).State = EntityState.Modified;
                 }
                 await context.SaveChangesAsync();
             }
@@ -72,15 +72,24 @@ namespace kbsrserver.Controllers
             var imei = Request.GetImei();
             using (var context = new ApplicationDbContext())
             {
+                var keys = await context.Keys.Where(k => k.User.UserName == User.Identity.Name).ToListAsync();
+                foreach (var currentKey in keys)
+                {
+                    currentKey.SessionKeyGenerated = null;
+                    context.Entry(currentKey).State = EntityState.Modified;
+                }
+                await context.SaveChangesAsync();
+
                 var key = await context.Keys.FirstOrDefaultAsync(k => k.User.UserName == User.Identity.Name && k.Imei == imei);
                 if (key == null || key.PublicKey == null)
-                    throw new HttpResponseException(Request.CreateCustomErrorResponse(HttpStatusCode.BadRequest, "Public key by email not found"));
+                    throw new HttpResponseException(Request.CreateCustomErrorResponse(HttpStatusCode.BadRequest, "Public key by email not found"));                
 
-                key.SessionKey = BouncyCastleHelper.GenerateSerpentKey();
+                var sessionKey = BouncyCastleHelper.GenerateSerpentKey();
+                key.SessionKey = BouncyCastleHelper.DbProtection(sessionKey);
                 key.SessionKeyGenerated = DateTime.UtcNow;
                 context.Entry(key).State = EntityState.Modified;
                 await context.SaveChangesAsync();            
-                return new SessionKeyResponse { EncryptedSessionKey = BouncyCastleHelper.EncryptSessionKey(key.SessionKey, key.PublicKey) };
+                return new SessionKeyResponse { EncryptedSessionKey = BouncyCastleHelper.EncryptSessionKey(sessionKey, BouncyCastleHelper.DbProtection(key.PublicKey, false)) };
             }
         }
 
@@ -107,7 +116,7 @@ namespace kbsrserver.Controllers
                 return new NoteResponse
                 {
                     Name = text.Name,
-                    EncryptedText = BouncyCastleHelper.EncryptNote(text.Text, key.SessionKey)
+                    EncryptedText = BouncyCastleHelper.EncryptNote(BouncyCastleHelper.DbProtection(text.Text, false), BouncyCastleHelper.DbProtection(key.SessionKey, false))
                 };
             }
         }

@@ -249,6 +249,10 @@
     <Compile Include="Migrations\201611221701329_eighth.Designer.cs">
       <DependentUpon>201611221701329_eighth.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201612272038316_Ningth.cs" />
+    <Compile Include="Migrations\201612272038316_Ningth.Designer.cs">
+      <DependentUpon>201612272038316_Ningth.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountBindingModels.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
@@ -353,6 +357,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\201611221701329_eighth.resx">
       <DependentUpon>201611221701329_eighth.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201612272038316_Ningth.resx">
+      <DependentUpon>201612272038316_Ningth.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
